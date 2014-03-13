@@ -26,7 +26,7 @@ import java.io.FileNotFoundException;
 /**
  * Class PasswordCrack is the password cracking main program.
  */
-public class PasswordCrack2 {
+public class PasswordCrack2 extends Task{
 	
 	//The number of  characters to check (a-z) (0-9)
 	private static final int CHARACTERS = 36
@@ -104,6 +104,13 @@ public class PasswordCrack2 {
 		for (Thread t: users) {
 			t.join();
 		}
+	
+	/*
+		Passwords ranging from 0-z can easily be expressed as an integer
+		ranging from 0 to 36 and then converted to the text as base 36 numbers.
+		The loop goes over each possible password by looping from 0 (0)
+		to 36^4 (zzzz)
+	*/
 
 		
 
