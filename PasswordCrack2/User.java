@@ -25,6 +25,9 @@ public class User extends Thread {
 	//The password hex
 	private String digestHex;
 	
+	//The counter object to alert when done
+	private Counter counter;
+	
 	
 
 	/**
@@ -33,14 +36,16 @@ public class User extends Thread {
 	 * @param  user        User name.
 	 * @param  digestHex   Password digest as a hexadecimal string.
 	 * @param  dictionary  Dictionary in which to search for passwords.
+	 * @param counter      The counter object to track when to print the stats
 	 */
-	public Group2Thread(int id, String user, String digestHex,
-		 Dictionary dictionary, Turn turn) {
+	public User(String user, String digestHex,
+		 Dictionary dictionary, Counter counter) {
 		 
 		 //Store all parameters
 		 this.user = user;
 		 this.digestHex = digestHex;
 		 this.dictionary = dictionary;
+		 this.counter = counter;
 
 	}
 
@@ -53,11 +58,15 @@ public class User extends Thread {
 			//Check the dictionary for the plain text password
 			String plainText = 
 				dictionary.get(Hex.toByteArray(digestHex));
-			//Wait for this threads turn to print
 			//It was found!, print it
 			if (plainText != null) {
 				System.out.println(user + " " +  plainText);
+				//Let the counter know a password was found
+				counter.foundPassword();
 			}
+			
+			//Tell the counter that this user is done
+			counter.userDone();
 
 		}
 		
@@ -65,4 +74,5 @@ public class User extends Thread {
 		catch( InterruptedException e) {};
 
 	}
+
 }

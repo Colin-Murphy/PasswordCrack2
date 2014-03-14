@@ -49,6 +49,7 @@ public class Dictionary {
 	public synchronized void add(String password, byte[] digest) {
 		String hex = Hex.toString(digest);
 		map.put(hex, password);
+		//Notify any waiting threads
 		notifyAll();
 		
 	}
