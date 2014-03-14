@@ -22,8 +22,15 @@ import java.io.FileNotFoundException;
 
 
 //ParallelJava2
-import edu.rit.pj2.Loop;
+import edu.rit.pj2.LongLoop;
 import edu.rit.pj2.Task;
+import edu.rit.pj2.LongVbl;
+
+//Hex Class
+import edu.rit.util.Hex;
+
+//Users are contained in a hashmap
+import java.util.*;
 
 
 
@@ -39,8 +46,15 @@ public class PasswordCrack2 extends Task{
 	//The maximum password length
 	private static final int LENGTH = 4;
 	
-	//Dictionary for storing the hashes
-	private Dictionary dictionary  = new Dictionary();
+	//Hashmap to contain the users and their hashed passwords
+	private HashMap<String, String> users = new HashMap<String, String>();
+	
+	//Count of users that found their password
+   	private LongVbl count;
+   	
+   	//total amount of passwords to crack
+   	private long size;
+	
 
 	/**
 	 * Main program.
@@ -48,7 +62,7 @@ public class PasswordCrack2 extends Task{
 	public void main(final String[] args) throws Exception {
 		//Insure proper amount of arguments
 		if (args.length != 1) {
-			System.err.println("Usage: pj2 java PasswordCrack2" 
+			System.err.println("Usage: java pj2 PasswordCrack2" 
 				+ "<databaseFile>");
 			//Were done here
 			return;
@@ -77,16 +91,10 @@ public class PasswordCrack2 extends Task{
 
 		
 		//The final size of the dictionary
-		//cast it as an int no precision will be lost
-		int size = (int)Math.pow(CHARACTERS, LENGTH);
-		//Let the dictionary know how many hashes to expect
-		dictionary.setCount(size);
+		//cast it as a long no precision will be lost
+		size = (long)Math.pow(CHARACTERS, LENGTH);
+
 		
-		//Arraylist of User threads
-		ArrayList<Thread> users = new ArrayList<Thread>();
-		
-		//Create the new counter
-		Counter counter = new Counter();
 		
 		String line = "";
 		//Parse input and start thread group 2 (users)
@@ -94,11 +102,9 @@ public class PasswordCrack2 extends Task{
 			while((line = reader.readLine()) !=null) {
 				//Split into tokens at any whitespace
 				String[] tokens = line.split("\\s+");
-				//Create and run a new thread
-				Thread t = new Thread(new User(tokens[0], 
-					tokens[1], dictionary, counter));
-				//Add the thread to the group
-				users.add(t);
+				
+				//Add this password and use to the hashmap
+				users.put(tokens[1], tokens[0]);
 
 				
 			}
@@ -112,13 +118,6 @@ public class PasswordCrack2 extends Task{
 			System.exit (1);
 		}
 		
-		counter.setCount(users.size());
-
-		//Start all the user threads
-		for (Thread t: users) {
-			t.start();
-			
-		}
 		
 		
 	
@@ -131,21 +130,32 @@ public class PasswordCrack2 extends Task{
 			In the current scenario the program will user a maxium
 			of 36^4 cores.
 		*/
-		parallelFor(0,size).exec(new Loop() {
-			public void run(int i) {
-				//Express the index as a base 36 integer
+		count = new LongVbl.Sum(0);
+		parallelFor(0,size).exec(new LongLoop() {
+			LongVbl localCount;
+			
+			public void start() {
+				localCount = threadLocal(count);
+			}
+			
+			public void run(long i) {
+				//Plain text password
 				String password = base36(i);
+				//Get the password hash of the index in base 36 as a string
+				String hex = Hex.toString(Hash.passwordHash(password));
 				
-				//Add the hash to the database
-				dictionary.add(password, Hash.passwordHash(password));
+				//If this hash exists then print it
+				if (users.containsKey(hex)) {
+					System.out.println(users.get(hex) + " " + password);
+					localCount.item++;
+				}
 			}
 		});
 		
-		//Join all the threads
-		for (Thread t: users) {
-			t.join();
-		}
-	
+		//Print the statistics
+		System.out.println(users.size() + " users");
+		System.out.println(count.item + " passwords found");
+		
 		
 
 	}//End of constructor
@@ -153,10 +163,10 @@ public class PasswordCrack2 extends Task{
 	
 	/**
 		Encode an intger in base 36
-		@param i The integer to encode
+		@param i The long to encode
 		@return The String representation of the base 36 number
 	**/
-	private static String base36(int i) {
+	private static String base36(long i) {
 		return Long.toString(i, 36);
 	}
 	
